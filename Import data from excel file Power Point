@@ -1,0 +1,118 @@
+
+import win32com.client as w32
+from win32com.client import constants
+import pptx
+from pptx import Presentation
+import win32api
+win32api.FormatMessage(-2147417848)
+import time
+import pandas as pd
+
+path = "//..g_emil...//"
+
+PP = w32.Dispatch("PowerPoint.Application")
+Excel = w32.Dispatch("Excel.Application")
+Excel.Visible = True
+presentation = PP.Presentations.Add(True)
+
+workbook = Excel.Workbooks.Open( Filename = path + 'workbook_file.xlsx', ReadOnly = 1, UpdateLinks = False)
+
+# Функция для заголовка
+def slides_title(sheet_name):
+    data = pd.read_excel(path + 'подготовка данных для Слайдов_черновик.xlsx', sheet_name = sheet_name )
+#    Определение заголовка в файле xls
+    Title_head = data.iloc[0].iloc[0]
+    subtitle = data.iloc[1].iloc[0]
+#    Создание титульного слайда 
+    title_slide = presentation.Slides.Add(presentation.Slides.Count + 1, 1)
+    title_slide.Shapes(1).textframe.textrange.text = Title_head
+    title_slide.Shapes(2).textframe.textrange.text = subtitle
+
+# Функция для вставки таблиц на слайдах
+def slides_tabels(sheet_name):
+    data = pd.read_excel(path + 'workbook_file.xlsx', sheet_name = sheet_name )
+#     print(sheet_name)
+#     display(data.head())
+#      Заголовок слайда   
+    new_slide = presentation.Slides.Add(presentation.Slides.Count+1, 12)
+    new_title = new_slide.Shapes.AddTextBox(1,40,40,25,200)
+    header_slides = data.columns[0]
+    new_title.TextFrame.textrange.text = header_slides
+    new_title.TextFrame.textrange.font.size = 25
+    new_title.Left = 10
+    new_title.Top = 10
+    new_title.Height = 30
+    new_title.Width = 850
+    time.sleep(1)
+#   Диапазон расположения таблиц
+    table_range = (data.iloc[1:3,1:2])
+#     print(sl33)
+    start_ = table_range.iloc[0].iloc[0]
+    fin_ = table_range.iloc[1].iloc[0]
+    link_table_slide = (start_ + ":" + fin_).replace("$","")
+#    Копирование таблицы 
+    workbook.Worksheets(sheet_name).Range(link_table_slide).Copy()
+    print(link_table_slide)
+    new_slide.Select()
+    time.sleep(1)
+    PP.CommandBars.ExecuteMso ("PasteExcelTableSourceFormatting")  
+    time.sleep(2) 
+    slide_shape = new_slide.Shapes(2)
+#     Установка шрифта в таблицах
+    shape1 = new_slide.Shapes(2)
+    for row in shape1.table.Rows:
+        for cell in row.cells:
+            cell.shape.textframe.textrange.font.size = 9
+#     Расположение таблиц
+    slide_shape.left = 10
+    slide_shape.Top = 60
+    slide_shape.Height = 400
+    slide_shape.Width = 700
+#     Определить от общего диапазона и раз-в таблицы
+
+# Функция для вставки графиков
+def slides_objects(sheet_name):
+    data = pd.read_excel(path + 'workbook_file.xlsx', sheet_name = sheet_name )
+#     print(sheet_name)
+#     display(data.head())
+#      Заголовок слайда   
+    object_slide = presentation.Slides.Add(presentation.Slides.Count+1, 12)
+   
+    object_title = object_slide.Shapes.AddTextBox(1,40,40,25,500)
+    header_slides_objects = data.columns[0]
+    object_title.TextFrame.textrange.text = header_slides_objects
+    object_title.Left = 10
+    object_title.Top = 5
+#     object_title.Height = 30
+    object_title.Width = 850
+    time.sleep(1)
+    
+    chart = workbook.Worksheets(sheet_name).ChartObjects(1)
+    chart.Activate()
+    chart.Copy()  
+#     Slide=presentation.Slides.Add(presentation.Slides.Count+1, 12)
+    object_slide.shapes.PasteSpecial()
+    time.sleep(1)
+
+    object_slide.Select()
+    t1 = object_slide.Shapes(1)
+    t1.Left = 0
+    t1.Top = 70
+    t1.Height = 350
+    t1.Width = 800
+
+
+slides_title("title")
+slides_tabels("Slide1")
+slides_objects("Slide2")
+slides_tabels("Slide3")
+
+# Сохранение презентации
+presentation.SaveAs(path +"//PowerP.pptx")    
+presentation.Close()
+workbook.Close()
+
+print ('Tabels Finished Copying to Powerpoint Presentation')
+
+Excel.Quit()
+PP.Quit()
